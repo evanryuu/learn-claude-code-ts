@@ -41,8 +41,9 @@ function runBash(command: string) {
 
     return output ? output.slice(0, 50000) : "(no output)"
   } catch (err) {
-    const output = ((err.stdout || "") + (err.stderr || "")).trim()
-    return (output || `Error: ${err.message}`).slice(0, 50000)
+    const e = err as { stdout?: string; stderr?: string; message?: string }
+    const output = ((e.stdout || "") + (e.stderr || "")).trim()
+    return (output || `Error: ${e.message}`).slice(0, 50000)
   }
 }
 
