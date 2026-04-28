@@ -89,7 +89,7 @@ async function safePath(p: string) {
 
 async function runRead(p: string, limit: number) {
   const text = (await readFile(await safePath(p))).toString()
-  let lines = text.split(/\n|\r\n/)
+  let lines = text.split(/\r\n|\n/)
 
   if (limit && lines.length > limit) {
     lines = lines.slice(0, limit)
@@ -155,20 +155,32 @@ async function agentLoop(messages: MessageParam[]) {
 
     messages.push({ role: "assistant", content: response.content })
 
-    if (response.stop_reason !== "tool_use") {
-      // TODO: return here to exit the loop when the model has no more tool calls
+    for (const block of response.content) {
+      if (block.type === "thinking") console.log(chalk.greenBright(block.thinking))
+      else if (block.type === "text") console.log(chalk.gray(block.text))
     }
 
-    // TODO: iterate response.content; for each block.type === "tool_use",
-    //   - look up TOOL_HANDLERS[block.name] (cast block.name as keyof typeof TOOL_HANDLERS)
-    //   - await handler(block.input) — handlers are async, unlike s01's runBash
-    //   - push { type: "tool_result", tool_use_id: block.id, content: output } into a results array
-    // Then messages.push({ role: "user", content: results }) before the next iteration.
+    if (response.stop_reason !== "tool_use") {
+      return messages
+    }
+
+    const results = []
+    for (const block of response.content) {
+      if (block.type === "tool_use") {
+        const method = block.name as keyof typeof TOOL_HANDLERS
+        const handler = TOOL_HANDLERS[method]
+        console.log(chalk.yellow(`→ ${block.name}`), block.input)
+        const res = await handler(block.input)
+        console.log(chalk.cyan("←"), res.slice(0, 200))
+        results.push({ type: "tool_result" as const, tool_use_id: block.id, content: res })
+      }
+    }
+    messages.push({ role: "user", content: results })
   }
 }
 
 async function main() {
-  const rl = await createInterface({
+  const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
   })
@@ -177,15 +189,15 @@ async function main() {
 
   while (true) {
     const question = await rl.question(chalk.blue("s02: "))
-    if (["exit", "q"].includes(question)) break
+    if (["exit", "q"].includes(question.trim().toLowerCase())) break
     const message: MessageParam = {
       role: "user",
       content: question,
     }
-    // TODO: history.push(message); await agentLoop(history)
-    // TODO: after the loop returns, read history.at(-1)?.content and print
-    //   text/thinking blocks (see s01-agent-loop.ts:92-100 for the pattern).
+
+    history.push(message)
+    await agentLoop(history)
   }
 }
 
-// TODO: call main() at the bottom of the file (s01 has `main()` on its last line).
+main()
