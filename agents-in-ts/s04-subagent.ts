@@ -362,7 +362,7 @@ async function agentLoop(messages: MessageParam[]) {
     } else {
       roundsSinceTodo += 1
       if (roundsSinceTodo >= 3) {
-        results.unshift({ type: "text", text: "<reminder>Update your todos.</reminder>" })
+        results.unshift({ type: "text" as const, text: "<reminder>Update your todos.</reminder>" })
       }
     }
     messages.push({ role: "user", content: results })
