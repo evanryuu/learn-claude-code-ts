@@ -16,7 +16,7 @@ const client = new Anthropic({
   baseURL: process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com",
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 })
-const SYSTEM = `You are a coding agent at ${WORKDIR}. Use tools to solve tasks. Act, don't explain.`
+const SYSTEM = `You are a coding agent at ${WORKDIR}. Use tools to solve tasks. Act, don't explain. `
 
 const TOOL_HANDLERS = {
   bash: (kw: any) => runBash(kw.command),
